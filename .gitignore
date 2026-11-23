@@ -1,0 +1,20 @@
+# ── Carpeta privada: NUNCA se sube (credenciales, llaves, notas personales) ──
+Privado/*
+!Privado/LEEME.md
+
+# ── Por si una credencial queda fuera de Privado/ ──
+kaggle.json
+*.env
+.env*
+
+# ── Python / Jupyter ──
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# ── Sistema / editor ──
+.DS_Store
+Thumbs.db
+desktop.ini
