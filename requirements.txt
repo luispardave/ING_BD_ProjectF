@@ -1,0 +1,11 @@
+# Librerías para ejecutar los notebooks de Codigos/
+# Instalar (Windows, Python 3.13):
+#   py -3.13 -m venv .venv
+#   .venv\Scripts\activate
+#   pip install -r requirements.txt
+pandas==3.1.1
+pyarrow==26.0.1
+duckdb==2.0.1
+kaggle==2.2.5
+six==1.17.0
+ipykernel==7.4.0
