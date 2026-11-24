@@ -14,6 +14,7 @@ Funciones disponibles:
 
     Inspección   : inspeccionar_dataset(), listar_tablas()
     Serving      : ver_serving(), tamano_mb()
+    Apoyo        : ruta_relativa()
 
 
     Este archivo se actualiza en la medida en que nuevos notebooks necesitan nuevas rutas o funciones compartidas
@@ -215,3 +216,27 @@ def tamano_mb(ruta):
     """
 
     return os.path.getsize(ruta) / 1024 / 1024
+
+
+
+
+# ==============================================================================
+# FUNCIONES DE APOYO
+
+
+def ruta_relativa(ruta):
+
+    """
+    Regresa la ruta relativa a la raíz del proyecto (PROYECTO_BASE).
+
+    Se usa al imprimir rutas en los notebooks: así los resultados no muestran
+    carpetas personales de la computadora donde se ejecutaron.
+
+    Parámetros:
+        ruta : ruta absoluta de un archivo o carpeta del proyecto
+
+    Ejemplo:
+        ruta_relativa(DB_PATH)  →  'Ingesta_de_Datos/Base_de_datos/base_datos.db'
+    """
+
+    return os.path.relpath(ruta, PROYECTO_BASE).replace(os.sep, '/')
