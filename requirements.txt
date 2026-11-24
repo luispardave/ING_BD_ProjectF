@@ -9,3 +9,6 @@ duckdb==2.0.1
 kaggle==2.2.5
 six==1.17.0
 ipykernel==7.4.0
+scikit-learn==1.9.1
+joblib==1.6.0
+matplotlib==3.11.2
