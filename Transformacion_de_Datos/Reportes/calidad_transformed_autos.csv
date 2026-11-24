@@ -1,0 +1,14 @@
+﻿metrica,antes,después,cambio
+filas,200000,189845,-10155
+celdas_nulas_columnas_del_auto,186091,0,-186091
+celdas_nulas_informativas,66819,57441,-9378
+duplicados_exactos,612,1,-611
+precio_fuera_de_rango,377,0,-377
+anio_fuera_de_rango,1536,0,-1536
+millaje_nulo_o_fuera_de_rango,135,0,-135
+variantes_transmission,696,3,-693
+variantes_drivetrain,28,4,-24
+variantes_fuel_type,23,7,-16
+variantes_exterior_color,4732,15,-4717
+variantes_interior_color,2705,14,-2691
+electricos_con_cilindros,37,0,-37

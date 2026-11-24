@@ -39,6 +39,14 @@ Pipeline completo **RAW → EXTRACTED → TRANSFORMED → SERVING** con datos de
 | Control de cambios por **huella SHA-256** de cada fila | `raw_autos` no tiene fecha de publicación, así que no se puede usar marca de agua. La huella detecta filas nuevas o modificadas | EXTRACCION, PASOS 2 y 3 |
 | Carga con `append` (no `replace`) | Conserva los lotes anteriores. El CDC evita duplicar filas | EXTRACCION, PASO 3 |
 | `Exportaciones/` no se sube | El JSON de la comparación de formatos pesa 115 MB. EXTRACCION lo regenera | `.gitignore` |
+| Nombres de columnas en inglés | El dataset es de EE. UU. Se conservan los nombres originales y las columnas nuevas siguen la misma convención | TRANSFORMACION |
+| Precio válido de **$1,000 a $200,000** | Abajo hay precios simbólicos ($1, $299). Arriba hay errores ($1,111,111) y superdeportivos que el usuario no valúa y que distorsionarían el modelo | TRANSFORMACION 3.4 |
+| Año válido de **2000 a 2024** | Los clásicos se aprecian con la edad, que es la lógica contraria a la del resto | TRANSFORMACION 3.4 |
+| Se **eliminan** las filas con nulos en accidentes, un dueño y uso personal | Son entradas del formulario. Imputarlas metería ruido en variables clave | TRANSFORMACION 3.3 |
+| Categorías y motor se **imputan** con la moda o la mediana de marca + modelo base | El modelo no acepta nulos, y los autos del mismo modelo comparten esas características | TRANSFORMACION 3.8–3.10 |
+| Columnas del vendedor y de las reseñas: **solo informativas** | No son características del auto y el usuario no puede capturarlas. Se usan en el tablero, no en el modelo, y no se imputan | TRANSFORMACION 3.11 y roles en el lineage |
+| `price_drop`, `original_price` y `price_range` fuera del modelo | Se derivan del precio o se conocen después de publicar. Usarlas sería *data leakage* | TRANSFORMACION 3.14 |
+| Precio en **USD**, kilometraje también en km | El dataset es de EE. UU. Los km se agregan para usuarios en México | TRANSFORMACION 3.14 |
 
 ## 4. Mapa del flujo
 
@@ -54,8 +62,10 @@ Kaggle (andreinovikov/used-cars-dataset)
   │    Base_de_datos/base_datos.db → extracted_autos
   │    Extraccion_de_Datos/Logs/cdc_autos.json · Extraccion_de_Datos/Logs/extraccion_log.jsonl
   │
-  ▼  TRANSFORMACION.ipynb ......................................... TRANSFORMED (pendiente)
-  │    Processed/transformed_autos.parquet · lineage · bitácora · calidad antes vs. después
+  ▼  TRANSFORMACION.ipynb ......................................... TRANSFORMED
+  │    Transformacion_de_Datos/Processed/transformed_autos.parquet
+  │    Transformacion_de_Datos/Logs/transformacion_log.jsonl · lineage_transformed_autos.json
+  │    Transformacion_de_Datos/Reportes/bitacora_transformed_autos.csv · calidad_transformed_autos.csv
   │
   ▼  MODELADO.ipynb ............................................... SERVING     (pendiente)
   │    Modelado_de_Datos/serving.db (esquema estrella)
@@ -101,7 +111,50 @@ Kaggle (andreinovikov/used-cars-dataset)
 | Comparación de formatos | CSV 45.9 MB · JSON 115 MB · **Parquet 7.7 MB**. Solo Parquet conserva todos los tipos de dato | PASO 7 |
 
 **Hallazgo para TRANSFORMACION:** hay 199 388 huellas distintas en 200 000 filas. Es decir, **612 filas son duplicados exactos** (610 anuncios repetidos).
-### TRANSFORMED — pendiente
+### TRANSFORMED — [Codigos/TRANSFORMACION.ipynb](Codigos/TRANSFORMACION.ipynb) ✅
+
+| Evidencia | Valor | Dónde |
+|---|---|---|
+| Filas EXTRACTED → TRANSFORMED | 200 000 → **189 845** (se conserva el 94.9 %). La bitácora cuadra con las 10 155 filas eliminadas | PASO 4 |
+| Columnas | 20 de negocio → **37** (31 de negocio + 6 metadatos) | PASO 5 |
+| Bitácora con justificación | 30 registros (15 transformaciones) → `Reportes/bitacora_transformed_autos.csv` | PASO 3 y 6 |
+| Calidad antes vs. después | `Reportes/calidad_transformed_autos.csv` | PASO 4 |
+| Lineage con roles de columnas | `Logs/lineage_transformed_autos.json` | PASO 6 |
+| Tipos conservados en Parquet | 37 de 37 iguales | PASO 5 |
+| Tamaño del Parquet | 8.7 MB | PASO 5 |
+
+**Calidad antes vs. después:**
+
+| Métrica | Antes | Después |
+|---|---|---|
+| Filas | 200 000 | 189 845 |
+| Celdas nulas en columnas del auto | 186 091 | **0** |
+| Celdas nulas informativas (se dejan nulas a propósito) | 66 819 | 57 441 |
+| Duplicados exactos | 612 | 1* |
+| Precio fuera de rango | 377 | **0** |
+| Año fuera de rango | 1 536 | **0** |
+| Millaje nulo o fuera de rango | 135 | **0** |
+| Variantes de transmisión | 696 | **3** |
+| Variantes de tracción | 28 | **4** |
+| Variantes de combustible | 23 | **7** |
+| Variantes de color exterior / interior | 4 732 / 2 705 | **15 / 14** |
+| Eléctricos con cilindros | 37 | **0** |
+
+\* Son dos anuncios distintos que quedaron iguales al estandarizar las categorías. No es un anuncio repetido.
+
+**Transformaciones principales:**
+- Se eliminaron:
+  - 612 duplicados;
+  - 125 filas sin millaje;
+  - 8 190 filas con nulos en accidentes, un dueño o uso personal;
+  - 326 precios fuera de rango;
+  - 893 autos anteriores a 2000;
+  - 9 millajes de relleno.
+- `model` pasó de 7 289 valores a **605 modelos base**. El texto completo se conserva como versión.
+- Del motor se extrajeron la cilindrada, los cilindros y el turbo. A los eléctricos se les asignó 0 cilindros.
+- `mpg` se separó en ciudad y carretera.
+- Se unió un catálogo de 30 marcas con su país y su segmento (lujo o masiva).
+- Columnas derivadas: `age`, `mileage_per_year`, `mileage_km`, `original_price` y `price_range`.
 ### SERVING — pendiente
 ### Uso de los datos (Streamlit) — pendiente
 
@@ -124,6 +177,12 @@ Kaggle (andreinovikov/used-cars-dataset)
 │   ├── Logs/cdc_autos.json
 │   ├── Logs/extraccion_log.jsonl
 │   └── Exportaciones/              ← comparación de formatos (no se sube)
+├── Transformacion_de_Datos/
+│   ├── Processed/transformed_autos.parquet
+│   ├── Logs/transformacion_log.jsonl
+│   ├── Logs/lineage_transformed_autos.json
+│   ├── Reportes/bitacora_transformed_autos.csv
+│   └── Reportes/calidad_transformed_autos.csv
 ├── Privado/                    ← credenciales (no se sube)
 └── requirements.txt
 ```
