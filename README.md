@@ -47,6 +47,11 @@ Pipeline completo **RAW → EXTRACTED → TRANSFORMED → SERVING** con datos de
 | Columnas del vendedor y de las reseñas: **solo informativas** | No son características del auto y el usuario no puede capturarlas. Se usan en el tablero, no en el modelo, y no se imputan | TRANSFORMACION 3.11 y roles en el lineage |
 | `price_drop`, `original_price` y `price_range` fuera del modelo | Se derivan del precio o se conocen después de publicar. Usarlas sería *data leakage* | TRANSFORMACION 3.14 |
 | Precio en **USD**, kilometraje también en km | El dataset es de EE. UU. Los km se agregan para usuarios en México | TRANSFORMACION 3.14 |
+| Nombres de tablas en inglés | Consistentes con los nombres de columnas | MODELADO |
+| Grano: **un anuncio de venta** | Es el nivel que necesitan el modelo (un precio por auto) y el tablero | MODELADO, PASO 2 |
+| `seller_rating` y `driver_rating` en el hecho, no en una dimensión | No dependen solo de su llave: 2 070 vendedores tienen varias calificaciones | MODELADO, PASO 2 |
+| `dim_color` de rol múltiple y `dim_history` como dimensión basura | Una sola lista de colores para exterior e interior. Las 3 banderas sí/no se juntan en 8 combinaciones | MODELADO 3.4 y 3.5 |
+| `serving.db` se crea de nuevo en cada ejecución | DuckDB no libera el espacio de las tablas borradas: el archivo crecía (35 → 71 MB) | MODELADO, PASO 3 |
 
 ## 4. Mapa del flujo
 
@@ -67,8 +72,9 @@ Kaggle (andreinovikov/used-cars-dataset)
   │    Transformacion_de_Datos/Logs/transformacion_log.jsonl · lineage_transformed_autos.json
   │    Transformacion_de_Datos/Reportes/bitacora_transformed_autos.csv · calidad_transformed_autos.csv
   │
-  ▼  MODELADO.ipynb ............................................... SERVING     (pendiente)
-  │    Modelado_de_Datos/serving.db (esquema estrella)
+  ▼  MODELADO.ipynb ............................................... SERVING
+  │    Modelado_de_Datos/serving.db (DuckDB): fact_listings + 6 dimensiones
+  │    Modelado_de_Datos/Reportes/validacion_serving_autos.csv
   │
   ▼  streamlit/app.py ............................................. USO         (pendiente)
        tablero + modelo.joblib
@@ -155,7 +161,105 @@ Kaggle (andreinovikov/used-cars-dataset)
 - `mpg` se separó en ciudad y carretera.
 - Se unió un catálogo de 30 marcas con su país y su segmento (lujo o masiva).
 - Columnas derivadas: `age`, `mileage_per_year`, `mileage_km`, `original_price` y `price_range`.
-### SERVING — pendiente
+### SERVING — [Codigos/MODELADO.ipynb](Codigos/MODELADO.ipynb) ✅
+
+**Esquema estrella** en `Modelado_de_Datos/serving.db` (DuckDB, 35.8 MB). Grano: un anuncio de venta.
+
+```mermaid
+erDiagram
+    fact_listings }o--|| dim_vehicle    : vehicle_id
+    fact_listings }o--|| dim_powertrain : powertrain_id
+    fact_listings }o--|| dim_year       : year
+    fact_listings }o--|| dim_color      : exterior_color_id
+    fact_listings }o--|| dim_color      : interior_color_id
+    fact_listings }o--|| dim_history    : history_id
+    fact_listings }o--|| dim_seller     : seller_id
+
+    fact_listings {
+        INTEGER listing_id PK
+        INTEGER vehicle_id FK
+        INTEGER powertrain_id FK
+        INTEGER year FK
+        INTEGER exterior_color_id FK
+        INTEGER interior_color_id FK
+        INTEGER history_id FK
+        INTEGER seller_id FK
+        INTEGER price
+        INTEGER price_drop
+        INTEGER original_price
+        INTEGER mileage
+        INTEGER mileage_km
+        INTEGER mileage_per_year
+        DOUBLE mpg_city
+        DOUBLE mpg_highway
+        DOUBLE seller_rating
+        DOUBLE driver_rating
+        INTEGER driver_reviews_num
+        VARCHAR price_range
+        VARCHAR _row_hash UK
+    }
+    dim_vehicle {
+        INTEGER vehicle_id PK
+        VARCHAR manufacturer
+        VARCHAR base_model
+        VARCHAR model
+        VARCHAR brand_country
+        VARCHAR brand_segment
+    }
+    dim_powertrain {
+        INTEGER powertrain_id PK
+        DOUBLE engine_liters
+        INTEGER cylinders
+        BOOLEAN turbo
+        VARCHAR transmission
+        VARCHAR drivetrain
+        VARCHAR fuel_type
+    }
+    dim_year {
+        INTEGER year PK
+        INTEGER age
+    }
+    dim_color {
+        INTEGER color_id PK
+        VARCHAR color UK
+    }
+    dim_history {
+        INTEGER history_id PK
+        BOOLEAN accidents_or_damage
+        BOOLEAN one_owner
+        BOOLEAN personal_use_only
+    }
+    dim_seller {
+        INTEGER seller_id PK
+        VARCHAR seller_name UK
+    }
+```
+
+| Tabla | Filas | Llave | Concepto |
+|---|---|---|---|
+| `fact_listings` | 189 845 | `listing_id` | Hechos: medidas, medidas informativas y atributos degenerados |
+| `dim_vehicle` | 7 292 | `vehicle_id` | Desnormalizada: incluye la marca, su país y su segmento |
+| `dim_powertrain` | 752 | `powertrain_id` | Motor, transmisión, tracción y combustible |
+| `dim_year` | 24 | `year` (natural) | Año y antigüedad |
+| `dim_color` | 15 | `color_id` | **Rol múltiple**: el hecho la usa para el color exterior y el interior |
+| `dim_history` | 8 | `history_id` | **Dimensión basura**: accidentes, un dueño, uso personal |
+| `dim_seller` | 16 897 | `seller_id` | Informativa (solo tablero) |
+
+**Validación** (`Modelado_de_Datos/Reportes/validacion_serving_autos.csv`): **14 de 14 correctas**.
+
+| Validación | Tabla plana | Esquema estrella |
+|---|---|---|
+| Filas | 189 845 | 189 845 |
+| Suma de `price` | 6 075 021 861 | 6 075 021 861 |
+| Suma de `mileage` | 10 585 531 210 | 10 585 531 210 |
+| Suma de `price_drop` | 103 032 746 | 103 032 746 |
+| `seller_rating` / `driver_rating` no nulos | 139 583 / 182 666 | 139 583 / 182 666 |
+| Huérfanas, en cada una de las 7 llaves foráneas | — | **0** |
+| Reconstrucción de la tabla plana (31 columnas, `EXCEPT ALL` en ambos sentidos) | — | **0 filas distintas** |
+
+**Hallazgos de las consultas de prueba:**
+- Un auto de lujo pierde alrededor del 50 % de su valor en 4 años ($64,995 → $35,882). Uno de marca masiva pierde alrededor del 38 % ($41,836 → $25,995).
+- Un auto con accidentes y varios dueños tiene un precio mediano de $18,529. Uno sin accidentes y con un solo dueño tiene $32,999. La antigüedad también influye: 7 contra 3 años.
 ### Uso de los datos (Streamlit) — pendiente
 
 ## 6. Estructura del repositorio
@@ -183,6 +287,9 @@ Kaggle (andreinovikov/used-cars-dataset)
 │   ├── Logs/lineage_transformed_autos.json
 │   ├── Reportes/bitacora_transformed_autos.csv
 │   └── Reportes/calidad_transformed_autos.csv
+├── Modelado_de_Datos/
+│   ├── serving.db                  ← esquema estrella (DuckDB)
+│   └── Reportes/validacion_serving_autos.csv
 ├── Privado/                    ← credenciales (no se sube)
 └── requirements.txt
 ```

@@ -1,0 +1,15 @@
+﻿validacion,esperado,obtenido,coincide
+filas,189845,189845,True
+suma_price,6075021861,6075021861,True
+suma_mileage,10585531210,10585531210,True
+suma_price_drop,103032746,103032746,True
+seller_rating_no_nulos,139583,139583,True
+driver_rating_no_nulos,182666,182666,True
+huerfanas_vehicle,0,0,True
+huerfanas_powertrain,0,0,True
+huerfanas_year,0,0,True
+huerfanas_exterior_color,0,0,True
+huerfanas_interior_color,0,0,True
+huerfanas_history,0,0,True
+huerfanas_seller,0,0,True
+reconstruccion_filas_distintas,0,0,True
