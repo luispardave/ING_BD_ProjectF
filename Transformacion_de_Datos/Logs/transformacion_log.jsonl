@@ -1,0 +1,1 @@
+{"timestamp": "2026-11-24T11:53:02", "etapa": "carga_parquet", "origen": "extracted_autos", "destino": "Transformacion_de_Datos/Processed/transformed_autos.parquet", "filas_entrada": 200000, "filas_salida": 189845, "version": "v1", "estado": "exitoso", "detalle": "8.69 MB"}
