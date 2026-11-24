@@ -1,0 +1,362 @@
+{
+  "recorrido": [
+    "Kaggle (CSV)",
+    "raw_autos (SQLite)",
+    "extracted_autos (SQLite)",
+    "transformed_autos (Parquet)"
+  ],
+  "origen": "extracted_autos",
+  "base_de_datos": "Ingesta_de_Datos/Base_de_datos/base_datos.db",
+  "filas_origen": 200000,
+  "destino": "Transformacion_de_Datos/Processed/transformed_autos.parquet",
+  "filas_destino": 189845,
+  "estrategia_carga": "sobrescribir (full refresh)",
+  "version_reglas": "v1",
+  "generado_en": "2026-11-24T11:53:02",
+  "trazabilidad": "_row_hash vincula cada fila con extracted_autos y raw_autos",
+  "reglas": {
+    "precio": [
+      1000,
+      200000
+    ],
+    "anio": [
+      2000,
+      2024
+    ],
+    "millaje": [
+      0,
+      500000
+    ],
+    "anio_referencia": 2023
+  },
+  "roles_columnas": {
+    "objetivo": [
+      "price"
+    ],
+    "caracteristicas_auto": [
+      "manufacturer",
+      "base_model",
+      "model",
+      "year",
+      "age",
+      "mileage",
+      "mileage_km",
+      "mileage_per_year",
+      "engine_liters",
+      "cylinders",
+      "turbo",
+      "transmission",
+      "drivetrain",
+      "fuel_type",
+      "mpg_city",
+      "mpg_highway",
+      "exterior_color",
+      "interior_color",
+      "accidents_or_damage",
+      "one_owner",
+      "personal_use_only",
+      "brand_country",
+      "brand_segment"
+    ],
+    "solo_tablero_precio": [
+      "price_drop",
+      "original_price",
+      "price_range"
+    ],
+    "solo_tablero_info": [
+      "seller_name",
+      "seller_rating",
+      "driver_rating",
+      "driver_reviews_num"
+    ],
+    "metadatos": [
+      "_batch_id",
+      "_extracted_at",
+      "_source_table",
+      "_row_hash",
+      "_transformed_at",
+      "_transform_version"
+    ]
+  },
+  "transformaciones": [
+    {
+      "paso": "3.1",
+      "descripcion": "Quitar espacios extra en 10 columnas de texto",
+      "justificacion": "Valores iguales deben agruparse igual en el tablero y codificarse igual en el modelo",
+      "filas_antes": 200000,
+      "filas_despues": 200000,
+      "filas_afectadas": 149
+    },
+    {
+      "paso": "3.2",
+      "descripcion": "Eliminar duplicados exactos",
+      "justificacion": "Un anuncio repetido pesaría doble en el entrenamiento del modelo y en los conteos del tablero",
+      "filas_antes": 200000,
+      "filas_despues": 199388,
+      "filas_afectadas": 612
+    },
+    {
+      "paso": "3.3a",
+      "descripcion": "Eliminar filas sin millaje",
+      "justificacion": "El millaje es clave para el precio: no se puede inventar sin sesgar el modelo",
+      "filas_antes": 199388,
+      "filas_despues": 199263,
+      "filas_afectadas": 125
+    },
+    {
+      "paso": "3.3b",
+      "descripcion": "Eliminar filas con nulos en ['accidents_or_damage', 'one_owner', 'personal_use_only']",
+      "justificacion": "Son entradas del formulario: imputarlas metería ruido en variables que el usuario sí conoce",
+      "filas_antes": 199263,
+      "filas_despues": 191073,
+      "filas_afectadas": 8190
+    },
+    {
+      "paso": "3.4a",
+      "descripcion": "Eliminar precio fuera de [$1,000, $200,000]",
+      "justificacion": "Precios simbólicos, errores y superdeportivos distorsionan el modelo y no son autos que valúe el usuario",
+      "filas_antes": 191073,
+      "filas_despues": 190747,
+      "filas_afectadas": 326
+    },
+    {
+      "paso": "3.4b",
+      "descripcion": "Eliminar año fuera de [2000, 2024]",
+      "justificacion": "Los clásicos se aprecian con la edad: siguen otra lógica de precio que confundiría al modelo",
+      "filas_antes": 190747,
+      "filas_despues": 189854,
+      "filas_afectadas": 893
+    },
+    {
+      "paso": "3.4c",
+      "descripcion": "Eliminar millaje fuera de [0, 500,000]",
+      "justificacion": "Valores de relleno (999,999) que no son un millaje real",
+      "filas_antes": 189854,
+      "filas_despues": 189845,
+      "filas_afectadas": 9
+    },
+    {
+      "paso": "3.5",
+      "descripcion": "Estandarizar transmission: 539 variantes → 3 categorías (100 valores no reconocibles → nulo)",
+      "justificacion": "Pocas categorías consistentes: el modelo las codifica bien y el tablero las usa como filtro",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 162557
+    },
+    {
+      "paso": "3.5",
+      "descripcion": "Estandarizar drivetrain: 26 variantes → 4 categorías (16 valores no reconocibles → nulo)",
+      "justificacion": "Pocas categorías consistentes: el modelo las codifica bien y el tablero las usa como filtro",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 182555
+    },
+    {
+      "paso": "3.5",
+      "descripcion": "Estandarizar fuel_type: 20 variantes → 7 categorías (352 valores no reconocibles → nulo)",
+      "justificacion": "Pocas categorías consistentes: el modelo las codifica bien y el tablero las usa como filtro",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 5167
+    },
+    {
+      "paso": "3.6",
+      "descripcion": "Color base en exterior_color: 4,455 variantes → 15 colores",
+      "justificacion": "Miles de nombres comerciales no sirven como filtro ni como categoría del modelo",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 187662
+    },
+    {
+      "paso": "3.6",
+      "descripcion": "Color base en interior_color: 2,562 variantes → 14 colores",
+      "justificacion": "Miles de nombres comerciales no sirven como filtro ni como categoría del modelo",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 175676
+    },
+    {
+      "paso": "3.7",
+      "descripcion": "Crear base_model: 7,289 modelos con versión → 605 modelos base",
+      "justificacion": "El modelo comercial es el nivel útil para filtrar en el tablero y para que el modelo generalice",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 189845
+    },
+    {
+      "paso": "3.8",
+      "descripcion": "Imputar transmission con la moda de marca + modelo base",
+      "justificacion": "El modelo no acepta nulos; los autos del mismo modelo comparten esta característica",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 2372
+    },
+    {
+      "paso": "3.8",
+      "descripcion": "Imputar drivetrain con la moda de marca + modelo base",
+      "justificacion": "El modelo no acepta nulos; los autos del mismo modelo comparten esta característica",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 4598
+    },
+    {
+      "paso": "3.8",
+      "descripcion": "Imputar fuel_type con la moda de marca + modelo base",
+      "justificacion": "El modelo no acepta nulos; los autos del mismo modelo comparten esta característica",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 5459
+    },
+    {
+      "paso": "3.9a",
+      "descripcion": "Extraer engine_liters, cylinders y turbo del texto de engine",
+      "justificacion": "El modelo necesita números, no texto libre; cilindrada y cilindros explican buena parte del precio",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 177917
+    },
+    {
+      "paso": "3.9b",
+      "descripcion": "Eléctricos: engine_liters = 0, cylinders = 0, turbo = False",
+      "justificacion": "Un eléctrico no tiene motor de combustión; corrige los textos que mencionaban cilindros",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 4041
+    },
+    {
+      "paso": "3.9c",
+      "descripcion": "Imputar engine_liters con la mediana de marca + modelo base",
+      "justificacion": "El modelo no acepta nulos; los autos del mismo modelo comparten motor",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 6277
+    },
+    {
+      "paso": "3.9c",
+      "descripcion": "Imputar cylinders con la mediana de marca + modelo base",
+      "justificacion": "El modelo no acepta nulos; los autos del mismo modelo comparten motor",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 5230
+    },
+    {
+      "paso": "3.9c",
+      "descripcion": "Imputar turbo con la moda de marca + modelo base",
+      "justificacion": "El modelo no acepta nulos; los autos del mismo modelo comparten motor",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 3323
+    },
+    {
+      "paso": "3.10a",
+      "descripcion": "Separar mpg en mpg_city y mpg_highway",
+      "justificacion": "Dos números que el modelo puede usar en lugar de un texto",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 155137
+    },
+    {
+      "paso": "3.10b",
+      "descripcion": "Imputar mpg_city con la mediana de marca + modelo base (o del combustible)",
+      "justificacion": "El modelo no acepta nulos; el rendimiento depende del modelo y del tipo de combustible",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 34072
+    },
+    {
+      "paso": "3.10b",
+      "descripcion": "Imputar mpg_highway con la mediana de marca + modelo base (o del combustible)",
+      "justificacion": "El modelo no acepta nulos; el rendimiento depende del modelo y del tipo de combustible",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 34663
+    },
+    {
+      "paso": "3.11a",
+      "descripcion": "price_drop: nulo → 0",
+      "justificacion": "Nulo significa que no hubo rebaja (el mínimo registrado es $100)",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 84833
+    },
+    {
+      "paso": "3.11b",
+      "descripcion": "seller_name: nulo → 'Unknown' (las calificaciones se dejan nulas)",
+      "justificacion": "Columnas solo informativas para el tablero: no se inventan calificaciones",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 9
+    },
+    {
+      "paso": "3.12",
+      "descripcion": "Convertir tipos (enteros, booleanos y fecha de extracción)",
+      "justificacion": "Tipos correctos: el modelo y las consultas SQL tratan cada columna como lo que es",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 0
+    },
+    {
+      "paso": "3.13",
+      "descripcion": "Join con catálogo de marcas (brand_country, brand_segment)",
+      "justificacion": "País y segmento de la marca ayudan al modelo a separar precios y son filtros útiles en el tablero",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 0
+    },
+    {
+      "paso": "3.14",
+      "descripcion": "Columnas derivadas: age, mileage_per_year, mileage_km, original_price, price_range",
+      "justificacion": "Antigüedad y uso anual explican la depreciación; km y rangos de precio sirven al tablero",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 0
+    },
+    {
+      "paso": "3.15",
+      "descripcion": "Metadatos de transformación y orden de columnas por rol",
+      "justificacion": "Lineage: cada fila conserva su origen y su versión de reglas",
+      "filas_antes": 189845,
+      "filas_despues": 189845,
+      "filas_afectadas": 0
+    }
+  ],
+  "columnas_destino": {
+    "manufacturer": "str",
+    "base_model": "str",
+    "model": "str",
+    "year": "int64",
+    "age": "int64",
+    "mileage": "int64",
+    "mileage_km": "int64",
+    "mileage_per_year": "int64",
+    "engine_liters": "float64",
+    "cylinders": "int64",
+    "turbo": "bool",
+    "transmission": "str",
+    "drivetrain": "str",
+    "fuel_type": "str",
+    "mpg_city": "float64",
+    "mpg_highway": "float64",
+    "exterior_color": "str",
+    "interior_color": "str",
+    "accidents_or_damage": "bool",
+    "one_owner": "bool",
+    "personal_use_only": "bool",
+    "brand_country": "str",
+    "brand_segment": "str",
+    "price": "int64",
+    "price_drop": "int64",
+    "original_price": "int64",
+    "price_range": "str",
+    "seller_name": "str",
+    "seller_rating": "float64",
+    "driver_rating": "float64",
+    "driver_reviews_num": "Int64",
+    "_batch_id": "int64",
+    "_extracted_at": "datetime64[us]",
+    "_source_table": "str",
+    "_row_hash": "str",
+    "_transformed_at": "datetime64[us]",
+    "_transform_version": "str"
+  }
+}

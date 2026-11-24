@@ -1,0 +1,31 @@
+﻿paso,descripcion,justificacion,filas_antes,filas_despues,filas_afectadas
+3.1,Quitar espacios extra en 10 columnas de texto,Valores iguales deben agruparse igual en el tablero y codificarse igual en el modelo,200000,200000,149
+3.2,Eliminar duplicados exactos,Un anuncio repetido pesaría doble en el entrenamiento del modelo y en los conteos del tablero,200000,199388,612
+3.3a,Eliminar filas sin millaje,El millaje es clave para el precio: no se puede inventar sin sesgar el modelo,199388,199263,125
+3.3b,"Eliminar filas con nulos en ['accidents_or_damage', 'one_owner', 'personal_use_only']",Son entradas del formulario: imputarlas metería ruido en variables que el usuario sí conoce,199263,191073,8190
+3.4a,"Eliminar precio fuera de [$1,000, $200,000]","Precios simbólicos, errores y superdeportivos distorsionan el modelo y no son autos que valúe el usuario",191073,190747,326
+3.4b,"Eliminar año fuera de [2000, 2024]",Los clásicos se aprecian con la edad: siguen otra lógica de precio que confundiría al modelo,190747,189854,893
+3.4c,"Eliminar millaje fuera de [0, 500,000]","Valores de relleno (999,999) que no son un millaje real",189854,189845,9
+3.5,Estandarizar transmission: 539 variantes → 3 categorías (100 valores no reconocibles → nulo),Pocas categorías consistentes: el modelo las codifica bien y el tablero las usa como filtro,189845,189845,162557
+3.5,Estandarizar drivetrain: 26 variantes → 4 categorías (16 valores no reconocibles → nulo),Pocas categorías consistentes: el modelo las codifica bien y el tablero las usa como filtro,189845,189845,182555
+3.5,Estandarizar fuel_type: 20 variantes → 7 categorías (352 valores no reconocibles → nulo),Pocas categorías consistentes: el modelo las codifica bien y el tablero las usa como filtro,189845,189845,5167
+3.6,"Color base en exterior_color: 4,455 variantes → 15 colores",Miles de nombres comerciales no sirven como filtro ni como categoría del modelo,189845,189845,187662
+3.6,"Color base en interior_color: 2,562 variantes → 14 colores",Miles de nombres comerciales no sirven como filtro ni como categoría del modelo,189845,189845,175676
+3.7,"Crear base_model: 7,289 modelos con versión → 605 modelos base",El modelo comercial es el nivel útil para filtrar en el tablero y para que el modelo generalice,189845,189845,189845
+3.8,Imputar transmission con la moda de marca + modelo base,El modelo no acepta nulos; los autos del mismo modelo comparten esta característica,189845,189845,2372
+3.8,Imputar drivetrain con la moda de marca + modelo base,El modelo no acepta nulos; los autos del mismo modelo comparten esta característica,189845,189845,4598
+3.8,Imputar fuel_type con la moda de marca + modelo base,El modelo no acepta nulos; los autos del mismo modelo comparten esta característica,189845,189845,5459
+3.9a,"Extraer engine_liters, cylinders y turbo del texto de engine","El modelo necesita números, no texto libre; cilindrada y cilindros explican buena parte del precio",189845,189845,177917
+3.9b,"Eléctricos: engine_liters = 0, cylinders = 0, turbo = False",Un eléctrico no tiene motor de combustión; corrige los textos que mencionaban cilindros,189845,189845,4041
+3.9c,Imputar engine_liters con la mediana de marca + modelo base,El modelo no acepta nulos; los autos del mismo modelo comparten motor,189845,189845,6277
+3.9c,Imputar cylinders con la mediana de marca + modelo base,El modelo no acepta nulos; los autos del mismo modelo comparten motor,189845,189845,5230
+3.9c,Imputar turbo con la moda de marca + modelo base,El modelo no acepta nulos; los autos del mismo modelo comparten motor,189845,189845,3323
+3.10a,Separar mpg en mpg_city y mpg_highway,Dos números que el modelo puede usar en lugar de un texto,189845,189845,155137
+3.10b,Imputar mpg_city con la mediana de marca + modelo base (o del combustible),El modelo no acepta nulos; el rendimiento depende del modelo y del tipo de combustible,189845,189845,34072
+3.10b,Imputar mpg_highway con la mediana de marca + modelo base (o del combustible),El modelo no acepta nulos; el rendimiento depende del modelo y del tipo de combustible,189845,189845,34663
+3.11a,price_drop: nulo → 0,Nulo significa que no hubo rebaja (el mínimo registrado es $100),189845,189845,84833
+3.11b,seller_name: nulo → 'Unknown' (las calificaciones se dejan nulas),Columnas solo informativas para el tablero: no se inventan calificaciones,189845,189845,9
+3.12,"Convertir tipos (enteros, booleanos y fecha de extracción)",Tipos correctos: el modelo y las consultas SQL tratan cada columna como lo que es,189845,189845,0
+3.13,"Join con catálogo de marcas (brand_country, brand_segment)",País y segmento de la marca ayudan al modelo a separar precios y son filtros útiles en el tablero,189845,189845,0
+3.14,"Columnas derivadas: age, mileage_per_year, mileage_km, original_price, price_range",Antigüedad y uso anual explican la depreciación; km y rangos de precio sirven al tablero,189845,189845,0
+3.15,Metadatos de transformación y orden de columnas por rol,Lineage: cada fila conserva su origen y su versión de reglas,189845,189845,0

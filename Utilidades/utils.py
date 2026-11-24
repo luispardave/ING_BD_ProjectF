@@ -62,7 +62,10 @@ EXPORTS_PATH    = f'{EXTRACCION_PATH}/Exportaciones'      # comparación de form
 
 # ── Capa de transformación ─────────────────────────────────────────
 
-PROCESSED_PATH = f'{PROYECTO_BASE}/Transformacion_de_Datos/Processed'
+TRANSFORMACION_PATH     = f'{PROYECTO_BASE}/Transformacion_de_Datos'
+PROCESSED_PATH          = f'{TRANSFORMACION_PATH}/Processed'      # transformed_<etiqueta>.parquet
+TRANSFORMACION_LOGS     = f'{TRANSFORMACION_PATH}/Logs'           # transformacion_log.jsonl y lineage
+TRANSFORMACION_REPORTES = f'{TRANSFORMACION_PATH}/Reportes'       # bitácora y calidad antes vs. después
 
 
 # ── Capa de modelado (SERVING) ─────────────────────────────────────
