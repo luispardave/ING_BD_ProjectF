@@ -55,6 +55,10 @@ Pipeline completo **RAW → EXTRACTED → TRANSFORMED → SERVING** con datos de
 | El modelo se entrena desde `serving.db` (hechos + dimensiones) | Usa la misma capa que la app | MODELO_PREDICTIVO, PASO 1 |
 | **Regresión lineal** sobre `log(price)` en lugar de árbol de decisión | El árbol es un poco más preciso (R² 0.912 contra 0.888), pero predice por escalones: en 49 de 300 autos sube el precio al agregar millas y en 197 de 222 ignora un accidente. La lineal siempre es coherente, se explica en % por variable y pesa 11 KB | MODELO_PREDICTIVO, PASOS 7, 10 y 11 |
 | Se guarda el modelo entrenado con el 80 % | Las métricas que muestra la app son exactamente las de la prueba | MODELO_PREDICTIVO, PASO 11 |
+| La app usa **km**, aunque los datos están en millas | Es para usuarios en México. La conversión a millas para el modelo es automática | `streamlit/app.py` |
+| El formulario pide solo lo que el usuario sabe | Marca, modelo, año, km e historial. Motor, rendimiento y colores se prellenan con lo más común de ese modelo y año (opciones avanzadas) | `streamlit/app.py`, pestaña 1 |
+| MODELADO copia `serving.db` a `streamlit/` | La app siempre usa la última versión del modelo de datos | MODELADO, último paso |
+| Versiones fijas en `streamlit/requirements.txt` | El `.joblib` necesita la misma versión de scikit-learn, y `serving.db` la misma de DuckDB | `streamlit/requirements.txt` |
 
 ## 4. Mapa del flujo
 
@@ -82,7 +86,7 @@ Kaggle (andreinovikov/used-cars-dataset)
   ▼  MODELO_PREDICTIVO.ipynb ...................................... MODELO
   │    streamlit/modelo.joblib · streamlit/modelo_info.json · streamlit/real_vs_predicho.png
   │
-  ▼  streamlit/app.py ............................................. USO         (pendiente)
+  ▼  streamlit/app.py ............................................. USO
        tablero (consulta serving.db) + formulario de predicción (modelo.joblib)
 ```
 
@@ -302,7 +306,29 @@ Partición: 80 % entrenamiento (151 876 anuncios) y 20 % prueba (37 969 anuncios
 - `modelo_info.json`: las variables, las métricas y las versiones de las librerías.
 - `real_vs_predicho.png`.
 
-### Uso de los datos (Streamlit) — pendiente
+### Uso de los datos — [streamlit/app.py](streamlit/app.py) ✅
+
+App **"¿Cuánto vale mi carro?"**: tiene el banner institucional, el banner de la app y 3 pestañas. Todas las consultas leen `serving.db` uniendo `fact_listings` con sus dimensiones.
+
+| Pestaña | Responde | Contenido |
+|---|---|---|
+| 🚗 **¿Cuánto vale mi carro?** (modelo) | Cuánto vale el auto del usuario | **Formulario:** marca → modelo → año, km, accidentes, dueños y uso. **Opciones avanzadas** prellenadas con lo más común del modelo: motor, transmisión, tracción, combustible, rendimiento y colores. **Resultado:** precio estimado, rango (± MAPE) y comparación con anuncios reales parecidos. **Gráfica:** el auto del usuario (◆) frente a los anuncios reales de ese modelo |
+| 🔎 **¿Cuánto vale el carro que quiero comprar?** (tablero) | Cuánto cuestan los autos que le interesan | **Filtros:** presupuesto, año, km máximo, segmento, marcas y combustible. **Indicadores:** anuncios, precio mediano, km mediano y % con rebaja. **4 gráficas:** (1) depreciación por antigüedad, (2) modelos más ofrecidos, (3) precio por tramo de km de un modelo, (4) efecto de accidentes y dueños. **Tabla:** vendedores mejor calificados (solo informativa) |
+| 📊 **Sobre el modelo** | Qué tan confiable es la estimación | Métricas (R², MAE, MAPE, RMSE), gráfica de real contra predicho, efecto en % de cada variable, cómo funciona y limitaciones |
+
+**Pruebas realizadas:**
+- Con `AppTest` de Streamlit:
+  - las 3 pestañas sin errores;
+  - las **30 marcas** en el formulario;
+  - un eléctrico (Tesla Model 3);
+  - filtros sin resultados (muestra un aviso y el resto de la app sigue funcionando).
+- **Prueba de "otra computadora":**
+  - se copió solo la carpeta `streamlit/` a otra ubicación;
+  - se creó un entorno de Python **nuevo**;
+  - se instaló únicamente `streamlit/requirements.txt`;
+  - se ejecutó `streamlit run app.py`. El servidor respondió y la app corrió sin errores.
+
+**Pendiente para el reporte:** capturas de pantalla de cada pestaña.
 
 ## 6. Estructura del repositorio
 
@@ -316,7 +342,9 @@ Partición: 80 % entrenamiento (151 876 anuncios) y 20 % prueba (37 969 anuncios
 │   ├── MODELO_PREDICTIVO.ipynb ← regresión lineal vs. árbol → streamlit/modelo.joblib
 │   ├── ALMACENAMIENTO.ipynb    ← (actividad anterior, por confirmar con el profesor)
 │   └── SQL_CONSULTAS.ipynb     ← (actividad anterior, por confirmar con el profesor)
-├── Utilidades/utils.py         ← rutas y funciones compartidas
+├── Utilidades/
+│   ├── utils.py                ← rutas y funciones compartidas
+│   └── generar_banner.py       ← genera streamlit/banner.png
 ├── Ingesta_de_Datos/
 │   ├── Datasets_raw/andreinovikov_used-cars-dataset/cars_muestra.csv
 │   └── Base_de_datos/base_datos.db     ← raw_autos, extracted_autos
@@ -333,9 +361,14 @@ Partición: 80 % entrenamiento (151 876 anuncios) y 20 % prueba (37 969 anuncios
 ├── Modelado_de_Datos/
 │   ├── serving.db                  ← esquema estrella (DuckDB)
 │   └── Reportes/validacion_serving_autos.csv
-├── streamlit/
+├── streamlit/                      ← todo lo necesario para ejecutar la app en otra computadora
+│   ├── app.py
+│   ├── serving.db                  ← copia de Modelado_de_Datos/serving.db
+│   ├── requirements.txt
 │   ├── modelo.joblib               ← regresión lineal (11 KB)
 │   ├── modelo_info.json
+│   ├── banner.png                  ← generado con Utilidades/generar_banner.py
+│   ├── banner_profesor.png
 │   └── real_vs_predicho.png
 ├── Privado/                    ← credenciales (no se sube)
 └── requirements.txt
@@ -352,3 +385,17 @@ pip install -r requirements.txt
 1. Copia tu `kaggle.json` a `Privado/` (ver [Privado/LEEME.md](Privado/LEEME.md)).
 2. Ejecuta los notebooks de `Codigos/` en orden: INGESTA → EXTRACCION → TRANSFORMACION → MODELADO → MODELO_PREDICTIVO.
    - `BUSQUEDA.ipynb` es opcional: solo documenta cómo se eligió el dataset.
+
+### Ejecutar solo la app
+
+La carpeta `streamlit/` funciona sola: no necesita los notebooks ni el resto del proyecto.
+
+```bash
+cd streamlit
+py -3.13 -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+> En Windows conviene que la carpeta tenga una ruta corta (por ejemplo, `C:\proyecto\streamlit`). Con rutas muy largas, Windows puede omitir archivos internos de Streamlit al instalarlo (límite de 260 caracteres).
