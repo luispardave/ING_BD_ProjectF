@@ -10,6 +10,8 @@ kaggle.json
 # ── Datos demasiado grandes para GitHub (límite 100 MB por archivo) ──
 # El CSV completo de Cars.com (~140 MB) solo vive en local; se sube la muestra cars_muestra.csv
 Ingesta_de_Datos/Datasets_raw/andreinovikov_used-cars-dataset/cars.csv
+# Exportaciones de la comparación de formatos (el JSON supera 100 MB); EXTRACCION las regenera
+Extraccion_de_Datos/Exportaciones/
 
 # ── Python / Jupyter ──
 __pycache__/

@@ -1,0 +1,2 @@
+{"timestamp": "2026-11-24T11:17:53", "tabla_origen": "raw_autos", "tabla_destino": "extracted_autos", "filas_leidas": 200000, "filas_nuevas": 200000, "tipo": "full_load", "estado": "exitoso", "error": null}
+{"timestamp": "2026-11-24T11:19:15", "tabla_origen": "raw_autos", "tabla_destino": "extracted_autos", "filas_leidas": 200000, "filas_nuevas": 0, "tipo": "incremental", "estado": "exitoso", "error": null}
