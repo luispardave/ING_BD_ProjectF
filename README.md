@@ -36,6 +36,9 @@ Pipeline completo **RAW → EXTRACTED → TRANSFORMED → SERVING** con datos de
 | Semilla fija `random_state=42` | La muestra es reproducible: siempre salen las mismas filas | INGESTA, PASO 4 |
 | La muestra **no limpia nada** | RAW debe quedar crudo. La limpieza va en TRANSFORMACION | INGESTA, PASO 4 (verificación) |
 | El CSV completo no se sube | Está en `.gitignore`. INGESTA lo vuelve a descargar de Kaggle si no existe | `.gitignore` |
+| Control de cambios por **huella SHA-256** de cada fila | `raw_autos` no tiene fecha de publicación, así que no se puede usar marca de agua. La huella detecta filas nuevas o modificadas | EXTRACCION, PASOS 2 y 3 |
+| Carga con `append` (no `replace`) | Conserva los lotes anteriores. El CDC evita duplicar filas | EXTRACCION, PASO 3 |
+| `Exportaciones/` no se sube | El JSON de la comparación de formatos pesa 115 MB. EXTRACCION lo regenera | `.gitignore` |
 
 ## 4. Mapa del flujo
 
@@ -47,8 +50,9 @@ Kaggle (andreinovikov/used-cars-dataset)
   │    Datasets_raw/andreinovikov_used-cars-dataset/cars_muestra.csv    (200k filas)
   │    Base_de_datos/base_datos.db → raw_autos
   │
-  ▼  EXTRACCION.ipynb ............................................. EXTRACTED   (pendiente)
-  │    base_datos.db → extracted_autos · Logs/cdc_autos.json · Logs/extraccion_log.jsonl
+  ▼  EXTRACCION.ipynb ............................................. EXTRACTED
+  │    Base_de_datos/base_datos.db → extracted_autos
+  │    Extraccion_de_Datos/Logs/cdc_autos.json · Extraccion_de_Datos/Logs/extraccion_log.jsonl
   │
   ▼  TRANSFORMACION.ipynb ......................................... TRANSFORMED (pendiente)
   │    Processed/transformed_autos.parquet · lineage · bitácora · calidad antes vs. después
@@ -82,7 +86,21 @@ Kaggle (andreinovikov/used-cars-dataset)
 - Texto sin estandarizar en `transmission`, `fuel_type` y los colores.
 - La versión del auto viene mezclada en `model` (por ejemplo, "ILX Hybrid 1.5L").
 
-### EXTRACTED — pendiente
+### EXTRACTED — [Codigos/EXTRACCION.ipynb](Codigos/EXTRACCION.ipynb) ✅
+
+| Evidencia | Valor | Dónde |
+|---|---|---|
+| Filas RAW vs. EXTRACTED | **200 000 = 200 000** (extracción completa) | PASO 5 |
+| Columnas | 20 originales + 4 de metadatos (`_batch_id`, `_extracted_at`, `_source_table`, `_row_hash`) = **24** | PASO 5 |
+| Control de cambios, 1.ª ejecución | `full_load`: 200 000 filas leídas, **200 000 nuevas**, lote 1 | PASO 4.1 |
+| Control de cambios, 2.ª ejecución | `incremental`: 200 000 filas leídas, **0 nuevas**. La tabla no crece | PASO 4.2 |
+| Estado del CDC | `Extraccion_de_Datos/Logs/cdc_autos.json` | PASO 4 |
+| Log de auditoría | `Extraccion_de_Datos/Logs/extraccion_log.jsonl`, 2 operaciones exitosas | PASO 6 |
+| Metadatos completos | 0 nulos en los 4 metadatos | PASO 5 |
+| Tamaño de `base_datos.db` (raw + extracted) | 80.9 MB | PASO 5 |
+| Comparación de formatos | CSV 45.9 MB · JSON 115 MB · **Parquet 7.7 MB**. Solo Parquet conserva todos los tipos de dato | PASO 7 |
+
+**Hallazgo para TRANSFORMACION:** hay 199 388 huellas distintas en 200 000 filas. Es decir, **612 filas son duplicados exactos** (610 anuncios repetidos).
 ### TRANSFORMED — pendiente
 ### SERVING — pendiente
 ### Uso de los datos (Streamlit) — pendiente
@@ -101,7 +119,11 @@ Kaggle (andreinovikov/used-cars-dataset)
 ├── Utilidades/utils.py         ← rutas y funciones compartidas
 ├── Ingesta_de_Datos/
 │   ├── Datasets_raw/andreinovikov_used-cars-dataset/cars_muestra.csv
-│   └── Base_de_datos/base_datos.db
+│   └── Base_de_datos/base_datos.db     ← raw_autos, extracted_autos
+├── Extraccion_de_Datos/
+│   ├── Logs/cdc_autos.json
+│   ├── Logs/extraccion_log.jsonl
+│   └── Exportaciones/              ← comparación de formatos (no se sube)
 ├── Privado/                    ← credenciales (no se sube)
 └── requirements.txt
 ```

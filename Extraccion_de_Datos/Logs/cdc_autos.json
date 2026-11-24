@@ -1,0 +1,10 @@
+{
+  "ultimo_batch": 1,
+  "tabla_origen": "raw_autos",
+  "tabla_destino": "extracted_autos",
+  "ultima_extraccion": "2026-11-24T11:19:15",
+  "filas_leidas": 200000,
+  "filas_nuevas": 0,
+  "filas_acumuladas": 200000,
+  "tipo": "incremental"
+}

@@ -53,6 +53,13 @@ DATASETS_RAW_PATH = f'{PROYECTO_BASE}/Ingesta_de_Datos/Datasets_raw'
 DB_PATH           = f'{PROYECTO_BASE}/Ingesta_de_Datos/Base_de_datos/base_datos.db'
 
 
+# ── Capa de extracción ─────────────────────────────────────────────
+
+EXTRACCION_PATH = f'{PROYECTO_BASE}/Extraccion_de_Datos'
+EXTRACCION_LOGS = f'{EXTRACCION_PATH}/Logs'               # cdc_<etiqueta>.json y extraccion_log.jsonl
+EXPORTS_PATH    = f'{EXTRACCION_PATH}/Exportaciones'      # comparación de formatos (se regenera, no se sube)
+
+
 # ── Capa de transformación ─────────────────────────────────────────
 
 PROCESSED_PATH = f'{PROYECTO_BASE}/Transformacion_de_Datos/Processed'
