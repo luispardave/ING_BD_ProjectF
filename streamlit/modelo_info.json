@@ -1,0 +1,57 @@
+{
+  "modelo": "Regresión lineal sobre log(price)",
+  "objetivo": "price",
+  "categoricas": [
+    "manufacturer",
+    "base_model",
+    "brand_country",
+    "brand_segment",
+    "transmission",
+    "drivetrain",
+    "fuel_type",
+    "exterior_color",
+    "interior_color"
+  ],
+  "numericas": [
+    "age",
+    "mileage",
+    "mileage_per_year",
+    "engine_liters",
+    "cylinders",
+    "mpg_city",
+    "mpg_highway"
+  ],
+  "booleanas": [
+    "turbo",
+    "accidents_or_damage",
+    "one_owner",
+    "personal_use_only"
+  ],
+  "filas_entrenamiento": 151876,
+  "filas_prueba": 37969,
+  "metricas_prueba": {
+    "R2": 0.888,
+    "MAE": 3654,
+    "RMSE": 6455,
+    "MAPE": 11.6
+  },
+  "efecto_pct": {
+    "age": -22.0,
+    "mileage": -16.3,
+    "mpg_highway": -4.2,
+    "accidents_or_damage": -4.0,
+    "one_owner": -0.1,
+    "mileage_per_year": 0.5,
+    "mpg_city": 1.2,
+    "cylinders": 1.5,
+    "personal_use_only": 1.7,
+    "turbo": 12.6,
+    "engine_liters": 14.9
+  },
+  "versiones": {
+    "scikit-learn": "1.9.1",
+    "joblib": "1.6.0",
+    "pandas": "3.1.1",
+    "numpy": "2.5.5"
+  }
+}

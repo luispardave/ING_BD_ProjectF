@@ -52,6 +52,9 @@ Pipeline completo **RAW → EXTRACTED → TRANSFORMED → SERVING** con datos de
 | `seller_rating` y `driver_rating` en el hecho, no en una dimensión | No dependen solo de su llave: 2 070 vendedores tienen varias calificaciones | MODELADO, PASO 2 |
 | `dim_color` de rol múltiple y `dim_history` como dimensión basura | Una sola lista de colores para exterior e interior. Las 3 banderas sí/no se juntan en 8 combinaciones | MODELADO 3.4 y 3.5 |
 | `serving.db` se crea de nuevo en cada ejecución | DuckDB no libera el espacio de las tablas borradas: el archivo crecía (35 → 71 MB) | MODELADO, PASO 3 |
+| El modelo se entrena desde `serving.db` (hechos + dimensiones) | Usa la misma capa que la app | MODELO_PREDICTIVO, PASO 1 |
+| **Regresión lineal** sobre `log(price)` en lugar de árbol de decisión | El árbol es un poco más preciso (R² 0.912 contra 0.888), pero predice por escalones: en 49 de 300 autos sube el precio al agregar millas y en 197 de 222 ignora un accidente. La lineal siempre es coherente, se explica en % por variable y pesa 11 KB | MODELO_PREDICTIVO, PASOS 7, 10 y 11 |
+| Se guarda el modelo entrenado con el 80 % | Las métricas que muestra la app son exactamente las de la prueba | MODELO_PREDICTIVO, PASO 11 |
 
 ## 4. Mapa del flujo
 
@@ -76,8 +79,11 @@ Kaggle (andreinovikov/used-cars-dataset)
   │    Modelado_de_Datos/serving.db (DuckDB): fact_listings + 6 dimensiones
   │    Modelado_de_Datos/Reportes/validacion_serving_autos.csv
   │
+  ▼  MODELO_PREDICTIVO.ipynb ...................................... MODELO
+  │    streamlit/modelo.joblib · streamlit/modelo_info.json · streamlit/real_vs_predicho.png
+  │
   ▼  streamlit/app.py ............................................. USO         (pendiente)
-       tablero + modelo.joblib
+       tablero (consulta serving.db) + formulario de predicción (modelo.joblib)
 ```
 
 ## 5. Evidencias por capa
@@ -260,6 +266,42 @@ erDiagram
 **Hallazgos de las consultas de prueba:**
 - Un auto de lujo pierde alrededor del 50 % de su valor en 4 años ($64,995 → $35,882). Uno de marca masiva pierde alrededor del 38 % ($41,836 → $25,995).
 - Un auto con accidentes y varios dueños tiene un precio mediano de $18,529. Uno sin accidentes y con un solo dueño tiene $32,999. La antigüedad también influye: 7 contra 3 años.
+### MODELO — [Codigos/MODELO_PREDICTIVO.ipynb](Codigos/MODELO_PREDICTIVO.ipynb) ✅
+
+**Variables de entrada (20):**
+- Categóricas: marca, modelo base, país y segmento de la marca, transmisión, tracción, combustible, colores exterior e interior.
+- Numéricas: antigüedad, millaje, millas por año, cilindrada, cilindros, rendimiento en ciudad y en carretera.
+- Sí/no: turbo, accidentes, un dueño, uso personal.
+
+**Excluidas:**
+- Redundantes: `model` (la versión), `year` y `mileage_km`.
+- Por *data leakage*: `price_drop`, `original_price` y `price_range`.
+- Informativas: las del vendedor y las reseñas.
+
+Partición: 80 % entrenamiento (151 876 anuncios) y 20 % prueba (37 969 anuncios), con `random_state=42`.
+
+| Métrica (prueba) | Regresión lineal ✅ | Árbol de decisión (profundidad 18) |
+|---|---|---|
+| R² prueba / entrenamiento | **0.888 / 0.887** | 0.912 / 0.960 |
+| MAE | $3,654 | $3,340 |
+| RMSE | $6,455 | $5,727 |
+| MAPE | 11.6 % | 11.5 % |
+| Tamaño `.joblib` | **11 KB** | 0.6 MB |
+| +20k millas **sube** el precio (de 300 autos) | **0** | 49 |
+| Un accidente **no baja** el precio (de 222 autos) | **0** | 197 |
+
+**Efecto de cada variable en el precio (regresión lineal):**
+- Cada desviación estándar de antigüedad le resta **22 %** al precio, y la de millaje le resta **16.3 %**.
+- Un accidente le resta **4 %**.
+- El turbo le suma **12.6 %**, y cada desviación estándar de cilindrada le suma **14.9 %**.
+
+**Ejemplo:** un Toyota RAV4 de 4 años con 45 000 millas se estima en **$29,123**. La mediana real de 155 anuncios parecidos es $30,451.
+
+**Archivos en `streamlit/`:**
+- `modelo.joblib` (11 KB): el `Pipeline` completo, con la preparación y la regresión.
+- `modelo_info.json`: las variables, las métricas y las versiones de las librerías.
+- `real_vs_predicho.png`.
+
 ### Uso de los datos (Streamlit) — pendiente
 
 ## 6. Estructura del repositorio
@@ -271,6 +313,7 @@ erDiagram
 │   ├── EXTRACCION.ipynb        ← EXTRACTED
 │   ├── TRANSFORMACION.ipynb    ← TRANSFORMED
 │   ├── MODELADO.ipynb          ← SERVING
+│   ├── MODELO_PREDICTIVO.ipynb ← regresión lineal vs. árbol → streamlit/modelo.joblib
 │   ├── ALMACENAMIENTO.ipynb    ← (actividad anterior, por confirmar con el profesor)
 │   └── SQL_CONSULTAS.ipynb     ← (actividad anterior, por confirmar con el profesor)
 ├── Utilidades/utils.py         ← rutas y funciones compartidas
@@ -290,6 +333,10 @@ erDiagram
 ├── Modelado_de_Datos/
 │   ├── serving.db                  ← esquema estrella (DuckDB)
 │   └── Reportes/validacion_serving_autos.csv
+├── streamlit/
+│   ├── modelo.joblib               ← regresión lineal (11 KB)
+│   ├── modelo_info.json
+│   └── real_vs_predicho.png
 ├── Privado/                    ← credenciales (no se sube)
 └── requirements.txt
 ```
@@ -303,5 +350,5 @@ pip install -r requirements.txt
 ```
 
 1. Copia tu `kaggle.json` a `Privado/` (ver [Privado/LEEME.md](Privado/LEEME.md)).
-2. Ejecuta los notebooks de `Codigos/` en orden: INGESTA → EXTRACCION → TRANSFORMACION → MODELADO.
+2. Ejecuta los notebooks de `Codigos/` en orden: INGESTA → EXTRACCION → TRANSFORMACION → MODELADO → MODELO_PREDICTIVO.
    - `BUSQUEDA.ipynb` es opcional: solo documenta cómo se eligió el dataset.
