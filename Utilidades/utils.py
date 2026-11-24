@@ -71,9 +71,9 @@ TRANSFORMACION_REPORTES = f'{TRANSFORMACION_PATH}/Reportes'       # bitácora y 
 # ── Capa de modelado (SERVING) ─────────────────────────────────────
 
 MODELADO_PATH          = f'{PROYECTO_BASE}/Modelado_de_Datos'
-SERVING_DB             = f'{MODELADO_PATH}/serving.db'            # los tres esquemas estrella
+SERVING_DB             = f'{MODELADO_PATH}/serving.db'            # esquema estrella (DuckDB)
 PRUEBAS_PATH           = f'{MODELADO_PATH}/Pruebas'               # archivos de la prueba de carga (se pueden borrar)
-MODELADO_REPORTES_PATH = f'{MODELADO_PATH}/Reportes'              # mediciones_<etiqueta>.csv
+MODELADO_REPORTES_PATH = f'{MODELADO_PATH}/Reportes'              # validación del esquema estrella
 
 
 # ==============================================================================
