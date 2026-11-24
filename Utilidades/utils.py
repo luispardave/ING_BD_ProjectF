@@ -76,6 +76,11 @@ PRUEBAS_PATH           = f'{MODELADO_PATH}/Pruebas'               # archivos de 
 MODELADO_REPORTES_PATH = f'{MODELADO_PATH}/Reportes'              # validación del esquema estrella
 
 
+# ── App de Streamlit (uso de los datos) ────────────────────────────
+
+STREAMLIT_PATH = f'{PROYECTO_BASE}/streamlit'                     # app.py, serving.db, modelo.joblib, imágenes
+
+
 # ==============================================================================
 # FUNCIONES DE INSPECCIÓN
 
