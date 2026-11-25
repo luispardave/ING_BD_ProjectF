@@ -1,0 +1,7 @@
+# Tema de la app: tonos del banner (magenta → azul marino) sobre fondo oscuro
+[theme]
+base = "dark"
+primaryColor = "#EC5C95"
+backgroundColor = "#141A33"
+secondaryBackgroundColor = "#222A50"
+textColor = "#EEF0F8"

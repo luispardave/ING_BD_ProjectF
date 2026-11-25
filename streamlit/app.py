@@ -38,7 +38,9 @@ BANNER_PROFESOR = CARPETA / 'banner_profesor.png'
 GRAFICA_MODELO  = CARPETA / 'real_vs_predicho.png'
 
 KM_POR_MILLA = 1.609344
-AZUL, MAGENTA = '#2A4A9B', '#C2185B'
+TIPO_CAMBIO  = 18.50                      # MXN por 1 USD (referencia; el usuario lo puede ajustar)
+# Tonos del banner, aclarados para que se lean sobre el fondo oscuro
+AZUL, MAGENTA = '#6F93F0', '#EC5C95'
 
 # Los datos están en inglés; la interfaz los muestra en español
 TRADUCCION = {
@@ -60,6 +62,29 @@ def es(valor):
 
 
 st.set_page_config(page_title='¿Cuánto vale mi carro?', page_icon='🚗', layout='wide')
+
+# Fondo con degradado en los tonos del banner (el tema oscuro base está en .streamlit/config.toml)
+st.markdown('''
+<style>
+.stApp {
+    background: linear-gradient(135deg, #2B1438 0%, #1A2150 45%, #10204A 100%);
+    background-attachment: fixed;
+}
+[data-testid="stHeader"] { background: transparent; }
+[data-testid="stSidebar"] { background: linear-gradient(180deg, #3A1543 0%, #1B2556 100%); }
+.tarjeta {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    padding: 14px 18px;
+    height: 100%;
+}
+.tarjeta .titulo  { font-size: 0.9rem; opacity: 0.8; margin-bottom: 4px; }
+.tarjeta .valor   { font-size: clamp(1.25rem, 2.1vw, 1.9rem); font-weight: 700; line-height: 1.25; }
+.tarjeta .valor span { white-space: nowrap; }      /* los números no se parten; el renglón corta entre ellos */
+.tarjeta .detalle { font-size: 0.85rem; opacity: 0.75; margin-top: 4px; }
+</style>
+''', unsafe_allow_html=True)
 
 
 # ==============================================================================
@@ -111,6 +136,57 @@ def grafica(chart):
 
 def dinero(x):
     return f'${x:,.0f}'
+
+
+def tarjeta(col, titulo, partes, detalle=''):
+    """Tarjeta de resultado: cada parte del valor se mantiene completa y el texto salta de renglón entre partes
+    (en lugar de cortarse con «…» como st.metric)."""
+    valor = ''.join(f'<span>{p}</span>' if i % 2 == 0 else p for i, p in enumerate(partes))
+    html = (f'<div class="tarjeta"><div class="titulo">{titulo}</div><div class="valor">{valor}</div>'
+            f'<div class="detalle">{detalle}</div></div>')
+    col.markdown(html.replace('$', '&#36;'), unsafe_allow_html=True)   # &#36; evita que «$» se lea como LaTeX
+
+
+def a_numero(valor):
+    """Convierte una opción de lista o un texto escrito («25000», «$25,000», «25k») a entero; None si no se puede."""
+    if isinstance(valor, (int, float)):
+        return int(valor)
+    texto = str(valor).lower().replace(',', '').replace('$', '').replace(' ', '')
+    mult = 1_000 if texto.endswith('k') else 1
+    try:
+        return int(float(texto.rstrip('k')) * mult)
+    except ValueError:
+        return None
+
+
+def caja(etiqueta, opciones, inicial, formato, key):
+    """Lista con opciones predefinidas en la que también se puede escribir un valor propio."""
+    return a_numero(st.selectbox(etiqueta, opciones, index=opciones.index(inicial), format_func=formato,
+                                 accept_new_options=True, key=key,
+                                 help='Elige una opción o escribe una cantidad (p. ej. 25000 o 25k)'))
+
+
+TODOS = 'Todos'
+
+def botones_con_todos(etiqueta, opciones, key):
+    """Botones seleccionables con la opción «Todos». Regresa [] cuando aplica a todos (sin filtro)."""
+    if key not in st.session_state:
+        st.session_state[key] = [TODOS]
+        st.session_state[f'{key}_previo'] = [TODOS]
+
+    def ajustar():
+        actual, previo = st.session_state[key] or [], st.session_state[f'{key}_previo']
+        if TODOS in actual and TODOS not in previo:            # se acaba de elegir «Todos»: limpia lo demás
+            nuevo = [TODOS]
+        else:                                                  # se eligió otra opción: quita «Todos»
+            nuevo = [v for v in actual if v != TODOS]
+        if not nuevo or set(nuevo) == set(opciones):           # nada o todas marcadas = «Todos»
+            nuevo = [TODOS]
+        st.session_state[key] = st.session_state[f'{key}_previo'] = nuevo
+
+    elegidos = st.pills(etiqueta, [TODOS] + opciones, selection_mode='multi', format_func=es,
+                        key=key, on_change=ajustar)
+    return [] if TODOS in elegidos else elegidos
 
 
 # ==============================================================================
@@ -230,10 +306,29 @@ with tab_valuar:
     mape   = info['metricas_prueba']['MAPE'] / 100
 
     st.divider()
-    r1, r2, r3 = st.columns([1.2, 1, 1])
-    r1.metric('Precio estimado', f'{dinero(precio)} USD')
-    r2.metric('Rango probable (± error promedio)', f'{dinero(precio * (1 - mape))} – {dinero(precio * (1 + mape))}')
-    r3.metric('Antigüedad / kilometraje anual', f'{edad} años · {km / max(edad, 1):,.0f} km/año')
+
+    # Moneda de los precios (solo los textos; las gráficas siguen en USD)
+    m1, m2 = st.columns([1, 1])
+    en_mxn = m1.toggle('💱 Ver precios en pesos mexicanos (MXN)', key='en_mxn')
+    if en_mxn:
+        tipo_cambio = m2.number_input('Tipo de cambio (MXN por 1 USD)', min_value=1.0, max_value=50.0,
+                                      value=TIPO_CAMBIO, step=0.10, format='%.2f', key='tipo_cambio')
+    moneda, factor = ('MXN', tipo_cambio) if en_mxn else ('USD', 1.0)
+
+    def precio_txt(x):
+        return dinero(x * factor)
+
+    r1, r2, r3 = st.columns([1, 1.2, 1])
+    tarjeta(r1, 'Precio estimado', [precio_txt(precio)], moneda)
+    tarjeta(r2, 'Rango probable (± error promedio)',
+            [precio_txt(precio * (1 - mape)), ' – ', precio_txt(precio * (1 + mape))],
+            f'{moneda} · ± {mape * 100:.0f} %')
+    tarjeta(r3, 'Antigüedad / kilometraje anual', [f'{edad} años', ' · ', f'{km / max(edad, 1):,.0f} km/año'],
+            f'{km:,.0f} km en total')
+    if en_mxn:
+        st.caption(f'Conversión con 1 USD = {tipo_cambio:.2f} MXN. Son precios de EE. UU. convertidos a pesos, '
+                   'no precios del mercado mexicano. Las gráficas siguen en dólares.')
+    st.write('')
 
     # Anuncios reales parecidos: mismo modelo, año ±1 y kilometraje ±30 %
     parecidos = consulta(f'''
@@ -246,8 +341,9 @@ with tab_valuar:
     cercanos = parecidos[parecidos['mileage_km'].between(km * 0.7, km * 1.3 + 5_000)]
     if len(cercanos) >= 3:
         st.info(f'**{len(cercanos)} anuncios reales parecidos** ({modelo_base} {anio - 1}–{anio + 1}, '
-                f'kilometraje similar) tienen un precio mediano de **{dinero(cercanos["price"].median())}** '
-                f'(la mitad entre {dinero(cercanos["price"].quantile(0.25))} y {dinero(cercanos["price"].quantile(0.75))}).')
+                f'kilometraje similar) tienen un precio mediano de **{precio_txt(cercanos["price"].median())} {moneda}** '
+                f'(la mitad entre {precio_txt(cercanos["price"].quantile(0.25))} y '
+                f'{precio_txt(cercanos["price"].quantile(0.75))}).')
     else:
         st.info('Hay pocos anuncios reales con un kilometraje parecido: la estimación se apoya en el modelo.')
 
@@ -274,14 +370,38 @@ with st.sidebar:
     st.header('🔎 Filtros del tablero')
     st.caption('Aplican a la pestaña «¿Cuánto vale el carro que quiero comprar?»')
 
-    presupuesto = st.slider('Presupuesto (USD)', 1_000, 200_000, (10_000, 40_000), step=1_000, format='$%d')
-    rango_anios = st.slider('Año', 2000, 2023, (2015, 2023))
-    km_max      = st.slider('Kilometraje máximo (km)', 10_000, 400_000, 150_000, step=10_000)
-    segmentos   = st.multiselect('Segmento de la marca', ['Mainstream', 'Luxury'], default=['Mainstream', 'Luxury'],
-                                 format_func=es)
-    marcas_f    = st.multiselect('Marcas (vacío = todas)', marcas)
+    st.markdown('**Presupuesto (USD)**')
+    montos = [1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000, 40_000, 50_000, 60_000,
+              75_000, 100_000, 150_000, 200_000]
+    p1, p2 = st.columns(2)
+    with p1:
+        precio_min = caja('Desde', montos, 10_000, dinero, 'precio_min')
+    with p2:
+        precio_max = caja('Hasta', montos, 40_000, dinero, 'precio_max')
+    precio_min = 1_000 if precio_min is None else precio_min
+    precio_max = 200_000 if precio_max is None else precio_max
+    presupuesto = (min(precio_min, precio_max), max(precio_min, precio_max))
+
+    st.markdown('**Año**')
+    lista_anios = list(range(2023, 1999, -1))
+    y1, y2 = st.columns(2)
+    anio_desde = y1.selectbox('Desde', lista_anios, index=lista_anios.index(2015), key='anio_desde')
+    anio_hasta = y2.selectbox('Hasta', lista_anios, index=lista_anios.index(2023), key='anio_hasta')
+    rango_anios = (min(anio_desde, anio_hasta), max(anio_desde, anio_hasta))
+
+    SIN_LIMITE = 10_000_000
+    kms = [20_000, 50_000, 80_000, 100_000, 150_000, 200_000, 250_000, 300_000, 400_000, SIN_LIMITE]
+    km_max = caja('Kilometraje máximo (km)', kms, 150_000,
+                  lambda k: 'Sin límite' if k == SIN_LIMITE else f'{k:,} km', 'km_max')
+    km_max = SIN_LIMITE if km_max is None else km_max
+
+    if precio_min > precio_max or anio_desde > anio_hasta:
+        st.caption('ℹ️ «Desde» era mayor que «Hasta»: se intercambiaron.')
+
+    segmentos = botones_con_todos('Segmento de la marca', ['Mainstream', 'Luxury'], 'segmentos')
+    marcas_f  = st.multiselect('Marcas (vacío = todas)', marcas)
     combustibles = consulta('SELECT DISTINCT fuel_type FROM dim_powertrain ORDER BY fuel_type')['fuel_type'].tolist()
-    combustibles_f = st.multiselect('Combustible (vacío = todos)', combustibles, format_func=es)
+    combustibles_f = botones_con_todos('Combustible', combustibles, 'combustibles')
 
 
 def filtro_sql():
