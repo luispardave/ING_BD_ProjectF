@@ -12,6 +12,7 @@ kaggle.json
 Ingesta_de_Datos/Datasets_raw/andreinovikov_used-cars-dataset/cars.csv
 # Exportaciones de la comparación de formatos (el JSON supera 100 MB); EXTRACCION las regenera
 Extraccion_de_Datos/Exportaciones/
+AVANCES.md
 
 # ── Python / Jupyter ──
 __pycache__/
