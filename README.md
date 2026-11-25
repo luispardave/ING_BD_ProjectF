@@ -92,7 +92,7 @@ Kaggle (andreinovikov/used-cars-dataset)
 
 ## 5. Evidencias por capa
 
-### RAW — [Codigos/INGESTA.ipynb](Codigos/INGESTA.ipynb) ✅
+### RAW — [Codigos/INGESTA.ipynb](Codigos/INGESTA.ipynb) 
 
 | Evidencia | Valor | Dónde |
 |---|---|---|
@@ -112,7 +112,7 @@ Kaggle (andreinovikov/used-cars-dataset)
 - Texto sin estandarizar en `transmission`, `fuel_type` y los colores.
 - La versión del auto viene mezclada en `model` (por ejemplo, "ILX Hybrid 1.5L").
 
-### EXTRACTED — [Codigos/EXTRACCION.ipynb](Codigos/EXTRACCION.ipynb) ✅
+### EXTRACTED — [Codigos/EXTRACCION.ipynb](Codigos/EXTRACCION.ipynb) 
 
 | Evidencia | Valor | Dónde |
 |---|---|---|
@@ -127,7 +127,7 @@ Kaggle (andreinovikov/used-cars-dataset)
 | Comparación de formatos | CSV 45.9 MB · JSON 115 MB · **Parquet 7.7 MB**. Solo Parquet conserva todos los tipos de dato | PASO 7 |
 
 **Hallazgo para TRANSFORMACION:** hay 199 388 huellas distintas en 200 000 filas. Es decir, **612 filas son duplicados exactos** (610 anuncios repetidos).
-### TRANSFORMED — [Codigos/TRANSFORMACION.ipynb](Codigos/TRANSFORMACION.ipynb) ✅
+### TRANSFORMED — [Codigos/TRANSFORMACION.ipynb](Codigos/TRANSFORMACION.ipynb) 
 
 | Evidencia | Valor | Dónde |
 |---|---|---|
@@ -171,7 +171,7 @@ Kaggle (andreinovikov/used-cars-dataset)
 - `mpg` se separó en ciudad y carretera.
 - Se unió un catálogo de 30 marcas con su país y su segmento (lujo o masiva).
 - Columnas derivadas: `age`, `mileage_per_year`, `mileage_km`, `original_price` y `price_range`.
-### SERVING — [Codigos/MODELADO.ipynb](Codigos/MODELADO.ipynb) ✅
+### SERVING — [Codigos/MODELADO.ipynb](Codigos/MODELADO.ipynb) 
 
 **Esquema estrella** en `Modelado_de_Datos/serving.db` (DuckDB, 35.8 MB). Grano: un anuncio de venta.
 
@@ -270,7 +270,7 @@ erDiagram
 **Hallazgos de las consultas de prueba:**
 - Un auto de lujo pierde alrededor del 50 % de su valor en 4 años ($64,995 → $35,882). Uno de marca masiva pierde alrededor del 38 % ($41,836 → $25,995).
 - Un auto con accidentes y varios dueños tiene un precio mediano de $18,529. Uno sin accidentes y con un solo dueño tiene $32,999. La antigüedad también influye: 7 contra 3 años.
-### MODELO — [Codigos/MODELO_PREDICTIVO.ipynb](Codigos/MODELO_PREDICTIVO.ipynb) ✅
+### MODELO — [Codigos/MODELO_PREDICTIVO.ipynb](Codigos/MODELO_PREDICTIVO.ipynb) 
 
 **Variables de entrada (20):**
 - Categóricas: marca, modelo base, país y segmento de la marca, transmisión, tracción, combustible, colores exterior e interior.
@@ -284,7 +284,7 @@ erDiagram
 
 Partición: 80 % entrenamiento (151 876 anuncios) y 20 % prueba (37 969 anuncios), con `random_state=42`.
 
-| Métrica (prueba) | Regresión lineal ✅ | Árbol de decisión (profundidad 18) |
+| Métrica (prueba) | Regresión lineal  | Árbol de decisión (profundidad 18) |
 |---|---|---|
 | R² prueba / entrenamiento | **0.888 / 0.887** | 0.912 / 0.960 |
 | MAE | $3,654 | $3,340 |
@@ -306,7 +306,7 @@ Partición: 80 % entrenamiento (151 876 anuncios) y 20 % prueba (37 969 anuncios
 - `modelo_info.json`: las variables, las métricas y las versiones de las librerías.
 - `real_vs_predicho.png`.
 
-### Uso de los datos — [streamlit/app.py](streamlit/app.py) ✅
+### Uso de los datos — [streamlit/app.py](streamlit/app.py) 
 
 App **"¿Cuánto vale mi carro?"**: tiene el banner institucional, el banner de la app y 3 pestañas. Todas las consultas leen `serving.db` uniendo `fact_listings` con sus dimensiones.
 
@@ -398,4 +398,4 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-> En Windows conviene que la carpeta tenga una ruta corta (por ejemplo, `C:\proyecto\streamlit`). Con rutas muy largas, Windows puede omitir archivos internos de Streamlit al instalarlo (límite de 260 caracteres).
+
