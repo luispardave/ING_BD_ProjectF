@@ -13,6 +13,8 @@ Ingesta_de_Datos/Datasets_raw/andreinovikov_used-cars-dataset/cars.csv
 # Exportaciones de la comparación de formatos (el JSON supera 100 MB); EXTRACCION las regenera
 Extraccion_de_Datos/Exportaciones/
 AVANCES.md
+Utilidades/generar_banner.py
+Utilidades/generar_figuras_reporte.py
 
 # ── Python / Jupyter ──
 __pycache__/
@@ -26,5 +28,4 @@ venv/
 Thumbs.db
 desktop.ini
 
-# ── Documento de instrucciones del profesor (no se sube) ──
-Proyecto final - Fundamentos de ingenieria de datos.pdf
+
