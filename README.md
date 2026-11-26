@@ -339,9 +339,7 @@ App **"¿Cuánto vale mi carro?"**: tiene el banner institucional, el banner de 
 │   ├── EXTRACCION.ipynb        ← EXTRACTED
 │   ├── TRANSFORMACION.ipynb    ← TRANSFORMED
 │   ├── MODELADO.ipynb          ← SERVING
-│   ├── MODELO_PREDICTIVO.ipynb ← regresión lineal vs. árbol → streamlit/modelo.joblib
-│   ├── ALMACENAMIENTO.ipynb    ← (actividad anterior, por confirmar con el profesor)
-│   └── SQL_CONSULTAS.ipynb     ← (actividad anterior, por confirmar con el profesor)
+│   └── MODELO_PREDICTIVO.ipynb ← regresión lineal vs. árbol → streamlit/modelo.joblib
 ├── Utilidades/
 │   ├── utils.py                ← rutas y funciones compartidas
 │   └── generar_banner.py       ← genera streamlit/banner.png
@@ -363,7 +361,7 @@ App **"¿Cuánto vale mi carro?"**: tiene el banner institucional, el banner de 
 │   └── Reportes/validacion_serving_autos.csv
 ├── streamlit/                      ← todo lo necesario para ejecutar la app en otra computadora
 │   ├── app.py
-│   ├── serving.db                  ← copia de Modelado_de_Datos/serving.db
+│   ├── serving.db                  ← copia de Modelado_de_Datos/serving.db (ver "Ejecutar solo la app")
 │   ├── requirements.txt
 │   ├── modelo.joblib               ← regresión lineal (11 KB)
 │   ├── modelo_info.json
@@ -389,6 +387,15 @@ pip install -r requirements.txt
 ### Ejecutar solo la app
 
 La carpeta `streamlit/` funciona sola: no necesita los notebooks ni el resto del proyecto.
+
+Por eso `serving.db` está **dos veces** en el repositorio:
+
+| Archivo | Para qué sirve |
+|---|---|
+| `Modelado_de_Datos/serving.db` | Es la capa SERVING original. La crea `MODELADO.ipynb` y la lee `MODELO_PREDICTIVO.ipynb` para entrenar |
+| `streamlit/serving.db` | Es una copia exacta que hace el último paso de `MODELADO.ipynb`. Con ella, la app corre en otra computadora sin ejecutar los notebooks |
+
+Las dos son idénticas (35.8 MB cada una) y ninguna pasa el límite de 100 MB de GitHub. Si se vuelve a ejecutar `MODELADO.ipynb`, la copia se actualiza sola.
 
 ```bash
 cd streamlit
